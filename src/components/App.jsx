@@ -5,14 +5,15 @@ import { Searchbar } from './Searchbar/Searchbar';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { ImageGalleryItem } from './ImageGalleryItem/ImageGalleryItem';
 import { Button } from './Button/Button';
-import { Audio } from 'react-loader-spinner';
+import { Loader } from './Loader/Loader';
 import { Modal } from './Modal/Modal';
+import './App.css';
 
 const API_KEY = '29476807-778104ca63f185ac7ce275560';
 
 let filteredImages = [];
 
-const pageSize = 3;
+const pageSize = 12;
 
 let selectedImage = '';
 
@@ -49,6 +50,7 @@ export class App extends Component {
   };
 
   toggleModal = () => {
+    console.log('qwe');
     this.setState({ showModal: !this.state.showModal });
   };
 
@@ -72,15 +74,21 @@ export class App extends Component {
             }
           )
           .then(response => {
-            response.data.hits.map(image => {
-              filteredImages.push(image);
-              return filteredImages;
-            });
-            this.setState({
-              images: filteredImages,
-              totalResults: response.data.totalHits,
-              status: 'resolved',
-            });
+            if (response) {
+              response.data.hits.map(image => {
+                filteredImages.push(image);
+                return filteredImages;
+              });
+
+              this.setState({
+                images: filteredImages,
+                totalResults: response.data.totalHits,
+                status: 'resolved',
+              });
+            }
+            if (response.data.hits.length <= 0) {
+              this.setState({ status: 'rejected' });
+            }
           });
       } catch (error) {
         this.setState({ status: 'rejected' });
@@ -95,27 +103,21 @@ export class App extends Component {
     }
     if (this.state.status === 'pending') {
       return (
-        <Box>
+        <Box className="App">
           <Searchbar onSubmit={this.handleSubmit}></Searchbar>
           <ImageGallery>
             <ImageGalleryItem data={this.state.images}></ImageGalleryItem>
           </ImageGallery>
-          <Audio
-            height="80"
-            width="80"
-            radius="9"
-            color="green"
-            ariaLabel="three-dots-loading"
-            wrapperStyle
-            wrapperClass
-          />
+          <Loader />
         </Box>
       );
     }
     if (this.state.status === 'resolved') {
       return (
-        <Box>
-          {this.state.showModal && <Modal url={selectedImage}></Modal>}
+        <Box className="App">
+          {this.state.showModal && (
+            <Modal url={selectedImage} onClose={this.toggleModal}></Modal>
+          )}
           <Searchbar onSubmit={this.handleSubmit}></Searchbar>
           <ImageGallery>
             <ImageGalleryItem
@@ -123,9 +125,14 @@ export class App extends Component {
               data={this.state.images}
             ></ImageGalleryItem>
           </ImageGallery>
-          <Button onClick={this.loadMore} page={this.state.page}></Button>
+          {this.state.images.length < this.state.totalResults && (
+            <Button onClick={this.loadMore} page={this.state.page}></Button>
+          )}
         </Box>
       );
+    }
+    if (this.state.status === 'rejected') {
+      return <Searchbar onSubmit={this.handleSubmit}></Searchbar>;
     }
   }
 }
